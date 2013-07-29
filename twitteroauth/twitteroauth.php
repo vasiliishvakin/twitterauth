@@ -22,10 +22,10 @@ class TwitterOAuth {
   /* Set timeout default. */
   public $timeout = 30;
   /* Set connect timeout. */
-  public $connecttimeout = 30; 
+  public $connecttimeout = 30;
   /* Verify SSL Cert. */
   public $ssl_verifypeer = FALSE;
-  /* Respons format. */
+  /* Response format. */
   public $format = 'json';
   /* Decode returned json data. */
   public $decode_json = TRUE;
@@ -36,8 +36,13 @@ class TwitterOAuth {
   /* Immediately retry the API call if the response was not successful. */
   //public $retry = TRUE;
 
-  public $encoded_bearer_credentials = null;
-  public $bearer_access_token = null;
+  public $http_header = array();
+  public $last_api_call;
+
+  public $get_bearer_token = false;
+  public $invalidate_bearer_token = false;
+  public $encoded_bearer_credentials;
+  public $bearer_access_token;
 
   /* Set proxy. */
   protected $proxy_host;
@@ -47,15 +52,18 @@ class TwitterOAuth {
   /**
    * Set API URLS
    */
-  function accessTokenURL()  { return 'https://api.twitter.com/oauth/access_token'; }
-  function authenticateURL() { return 'https://api.twitter.com/oauth/authenticate'; }
-  function authorizeURL()    { return 'https://api.twitter.com/oauth/authorize'; }
-  function requestTokenURL() { return 'https://api.twitter.com/oauth/request_token'; }
+  function accessTokenURL()           { return 'https://api.twitter.com/oauth/access_token'; }
+  function authenticateURL()          { return 'https://api.twitter.com/oauth/authenticate'; }
+  function authorizeURL()             { return 'https://api.twitter.com/oauth/authorize'; }
+  function requestTokenURL()          { return 'https://api.twitter.com/oauth/request_token'; }
+  function BearerTokenURL()           { return 'https://api.twitter.com/oauth2/token'; }
+  function invalidateBearerTokenURL() { return 'https://api.twitter.com/oauth2/invalidate_token'; }
 
   /**
    * Debug helpers
    */
-  function lastStatusCode() { return $this->http_status; }
+  function lastStatusCode() { return $this->http_code; }
+  function lastStatusHeader() { return $this->http_header; }
   function lastAPICall() { return $this->last_api_call; }
 
   /**
@@ -79,7 +87,7 @@ class TwitterOAuth {
    */
   function getRequestToken($oauth_callback) {
     $parameters = array();
-    $parameters['oauth_callback'] = $oauth_callback; 
+    $parameters['oauth_callback'] = $oauth_callback;
     $request = $this->oAuthRequest($this->requestTokenURL(), 'GET', $parameters);
     $token = OAuthUtil::parse_parameters($request);
     $this->token = new OAuthConsumer($token['oauth_token'], $token['oauth_token_secret']);
@@ -98,7 +106,7 @@ class TwitterOAuth {
     if (empty($sign_in_with_twitter)) {
       return $this->authorizeURL() . "?oauth_token={$token}";
     } else {
-       return $this->authenticateURL() . "?oauth_token={$token}";
+      return $this->authenticateURL() . "?oauth_token={$token}";
     }
   }
 
@@ -128,7 +136,7 @@ class TwitterOAuth {
    *                "user_id" => "9436992",
    *                "screen_name" => "abraham",
    *                "x_auth_expires" => "0")
-   */  
+   */
   function getXAuthToken($username, $password) {
     $parameters = array();
     $parameters['x_auth_username'] = $username;
@@ -150,7 +158,7 @@ class TwitterOAuth {
     }
     return $response;
   }
-  
+
   /**
    * POST wrapper for oAuthRequest.
    */
@@ -183,17 +191,26 @@ class TwitterOAuth {
     $request = OAuthRequest::from_consumer_and_token($this->consumer, $this->token, $method, $url, $parameters);
     $request->sign_request($this->sha1_method, $this->consumer, $this->token);
     switch ($method) {
-    case 'GET':
-      return $this->http($request->to_url(), 'GET');
-    default:
-      return $this->http($request->get_normalized_http_url(), $method, $request->to_postdata());
+      case 'GET':
+        return $this->http($request->to_url(), 'GET');
+      case 'POST':
+      default:
+        if ( $this->get_bearer_token || $this->invalidate_bearer_token ) {
+          $post_data = http_build_query($parameters);
+        } else {
+          $post_data = $request->to_postdata();
+        }
+        return $this->http($request->get_normalized_http_url(), $method, $post_data);
     }
   }
 
   /**
    * Make an HTTP request
    *
-   * @return API results
+   * @param string $url
+   * @param string $method
+   * @param null $postfields
+   * @return OAuthRequest results
    */
   function http($url, $method, $postfields = NULL) {
     $this->http_info = array();
@@ -204,9 +221,11 @@ class TwitterOAuth {
     curl_setopt($ci, CURLOPT_TIMEOUT, $this->timeout);
     curl_setopt($ci, CURLOPT_RETURNTRANSFER, TRUE);
     curl_setopt($ci, CURLOPT_SSL_VERIFYPEER, $this->ssl_verifypeer);
+    curl_setopt($ci, CURLOPT_HEADERFUNCTION, array($this, 'getHeader'));
+    curl_setopt($ci, CURLOPT_HEADER, FALSE);
 
     $this->setHeaders( $ci );
- 
+
     switch ($method) {
       case 'POST':
         curl_setopt($ci, CURLOPT_POST, TRUE);
@@ -229,6 +248,7 @@ class TwitterOAuth {
 
     $this->setUrl( $ci, $url );
     $response = curl_exec($ci);
+    $error = curl_error($ci);
     $this->http_code = curl_getinfo($ci, CURLINFO_HTTP_CODE);
     $this->http_info = array_merge($this->http_info, curl_getinfo($ci));
     curl_close ($ci);
@@ -248,21 +268,53 @@ class TwitterOAuth {
     return strlen($header);
   }
 
- /**
-  *
-  * For https://dev.twitter.com/docs/auth/application-only-auth
-  */
-  function getBearerToken()
-  {
-    $this->generateEncodedBearerCredentials();
-    $this->bearer_access_token = null;
-    $response = $this->post( "oauth2/token", array("grant_type" => "client_credentials"));
 
-    if( isset($response->token_type) && $response->token_type == "bearer" )
-    {   
-        $this->bearer_access_token = $response->access_token;
+  /**
+   * @link https://dev.twitter.com/docs/auth/application-only-auth
+   *
+   * @return OAuthRequest|string
+   */
+  function getBearerToken() {
+    $this->generateEncodedBearerCredentials();
+
+    $this->bearer_access_token = null;
+    $this->get_bearer_token = true;
+    $response = $this->post( "oauth2/token", array("grant_type" => "client_credentials"));
+    $this->get_bearer_token = false;
+
+    if ( isset($response->token_type) && $response->token_type == "bearer" ) {
+      return $this->bearer_access_token = urldecode($response->access_token);// Access Token has be url encoding.
+    } else {
+      return $response;
     }
-    return $this->bearer_access_token;
+  }
+
+  /**
+   * @param string $bearer_access_token
+   */
+  function setBearerToken($bearer_access_token) {
+    $this->generateEncodedBearerCredentials();
+    $this->bearer_access_token = $bearer_access_token;
+  }
+
+  /**
+   * @link https://dev.twitter.com/docs/api/1.1/post/oauth2/invalidate_token
+   *
+   * @return OAuthRequest|string
+   */
+  function invalidateBearerToken() {
+    $this->getBearerToken();
+
+    $this->invalidate_bearer_token = true;
+    $response = $this->post( "oauth2/invalidate_token", array("access_token" => $this->bearer_access_token));
+    $this->invalidate_bearer_token = false;
+
+    if ( isset($response->access_token) ) {
+      $this->bearer_access_token = null;
+      return urldecode($response->access_token);
+    } else {
+      return $response;
+    }
   }
 
   function generateEncodedBearerCredentials()
@@ -272,53 +324,45 @@ class TwitterOAuth {
     $this->encoded_bearer_credentials = base64_encode( $bearer_credentials );
   }
 
-  protected function setHeaders( $ci )
-  {
-    if( $this->encoded_bearer_credentials )
-    {
-      if( $this->bearer_access_token )
-      {
-        $this->setBearerTokenHeaders( $ci );
-      }else{
-        $this->setBearerCredentialHeaders( $ci );
-      }
-    }else{
-      $this->generateHeaders( $ci );      
+  protected function setHeaders( $ci ) {
+    if ( $this->get_bearer_token || $this->invalidate_bearer_token ) {
+      $this->setBearerCredentialHeaders( $ci );
+    } elseif( $this->encoded_bearer_credentials && $this->bearer_access_token ) {
+      $this->setBearerTokenHeaders( $ci );
+    } else {
+      $this->generateHeaders( $ci );
     }
-  }
-
-  protected function setUrl( $ci, $url )
-  {
-    if( $this->encoded_bearer_credentials && !$this->bearer_access_token )
-    {
-        $url = "https://api.twitter.com/oauth2/token";
-    }
-
-    curl_setopt($ci, CURLOPT_URL, $url );
-    $this->url = $url;
   }
 
   protected function generateHeaders( $ci )
   {
     curl_setopt($ci, CURLOPT_HTTPHEADER, array('Expect:'));
-    curl_setopt($ci, CURLOPT_HEADERFUNCTION, array($this, 'getHeader'));
-    curl_setopt($ci, CURLOPT_HEADER, FALSE);    
   }
 
   protected function setBearerCredentialHeaders( $ci )
   {
     $headers = array(
-                "Authorization: Basic " . $this->encoded_bearer_credentials, 
-                "Content-Type: application/x-www-form-urlencoded;charset=UTF-8"
-              );
-     curl_setopt($ci, CURLOPT_HTTPHEADER, $headers);
-  } 
+      "Authorization: Basic " . $this->encoded_bearer_credentials,
+      "Content-Type: application/x-www-form-urlencoded;charset=UTF-8"
+    );
+    curl_setopt($ci, CURLOPT_HTTPHEADER, $headers);
+  }
 
   protected function setBearerTokenHeaders( $ci )
   {
-     $headers = array( "Authorization: Bearer " . $this->bearer_access_token );
-     curl_setopt($ci, CURLOPT_HTTPHEADER, $headers);
-  } 
+    $headers = array( "Authorization: Bearer " . urlencode($this->bearer_access_token) );
+    curl_setopt($ci, CURLOPT_HTTPHEADER, $headers);
+  }
+
+  protected function setUrl( $ci, $url ) {
+    if ( $this->get_bearer_token ) {
+      $url = $this->BearerTokenURL();
+    } elseif ( $this->invalidate_bearer_token ) {
+      $url = $this->invalidateBearerTokenURL();
+    }
+    curl_setopt($ci, CURLOPT_URL, $url );
+    $this->url = $url;
+  }
 
   /**
    * @param string $proxy_host
