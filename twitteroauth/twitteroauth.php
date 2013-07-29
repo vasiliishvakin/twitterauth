@@ -36,6 +36,10 @@ class TwitterOAuth {
   /* Immediately retry the API call if the response was not successful. */
   //public $retry = TRUE;
 
+  /* Set proxy. */
+  protected $proxy_host;
+  protected $proxy_port;
+  protected $proxy_userpwd;
 
 
 
@@ -217,6 +221,13 @@ class TwitterOAuth {
         }
     }
 
+
+    if ($this->proxy_host) {
+      curl_setopt($ci, CURLOPT_PROXY, $this->proxy_host);
+      curl_setopt($ci, CURLOPT_PROXYPORT, $this->proxy_port);
+      curl_setopt($ci, CURLOPT_PROXYUSERPWD, $this->proxy_userpwd);
+    }
+
     curl_setopt($ci, CURLOPT_URL, $url);
     $response = curl_exec($ci);
     $this->http_code = curl_getinfo($ci, CURLINFO_HTTP_CODE);
@@ -238,4 +249,17 @@ class TwitterOAuth {
     }
     return strlen($header);
   }
+
+  /**
+   * @param string $proxy_host
+   * @param int $proxy_port
+   * @param string $proxy_username
+   * @param string $proxy_password
+   */
+  function setProxy($proxy_host, $proxy_port=8080, $proxy_username='', $proxy_password='') {
+    $this->proxy_host = $proxy_host;
+    $this->proxy_port = $proxy_port;
+    $this->proxy_userpwd = $proxy_username .":".$proxy_password;
+  }
+
 }
