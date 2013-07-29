@@ -245,7 +245,7 @@ class TwitterOAuth {
       curl_setopt($ci, CURLOPT_PROXYPORT, $this->proxy_port);
       curl_setopt($ci, CURLOPT_PROXYUSERPWD, $this->proxy_userpwd);
     }
-
+    //curl_setopt($ci, CURLINFO_HEADER_OUT,true); var_dump($postfields);
     $this->setUrl( $ci, $url );
     $response = curl_exec($ci);
     $error = curl_error($ci);
@@ -276,8 +276,8 @@ class TwitterOAuth {
    */
   function getBearerToken() {
     $this->generateEncodedBearerCredentials();
-
     $this->bearer_access_token = null;
+
     $this->get_bearer_token = true;
     $response = $this->post( "oauth2/token", array("grant_type" => "client_credentials"));
     $this->get_bearer_token = false;
@@ -302,8 +302,9 @@ class TwitterOAuth {
    *
    * @return OAuthRequest|string
    */
-  function invalidateBearerToken() {
-    $this->getBearerToken();
+  function invalidateBearerToken($bearer_access_token) {
+    $this->generateEncodedBearerCredentials();
+    $this->bearer_access_token = $bearer_access_token;
 
     $this->invalidate_bearer_token = true;
     $response = $this->post( "oauth2/invalidate_token", array("access_token" => $this->bearer_access_token));

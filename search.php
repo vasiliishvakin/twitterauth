@@ -27,14 +27,16 @@ if ( defined('PROXY_HOST') ) $connection->setProxy(PROXY_HOST, PROXY_PORT);
 /* Bearer Token invalidate */
 if (isset($_GET['invalidate']) && $_GET['invalidate']) {
 	// 実際にWebアプリケーションで使用するときは15〜60分でトークンを破棄して新しく取得すること
-	$invalidate_bearer_token = $connection->invalidateBearerToken();
+	$invalidate_bearer_token = $connection->invalidateBearerToken($connection->getBearerToken());
 	if ( isset($invalidate_bearer_token->errors) ) {
 		echo "Bearer Token was not invalidated.".PHP_EOL;
 	} else {
 		echo "Bearer Token has been invalidate.".PHP_EOL;
 	}
-	var_dump($invalidate_bearer_token);
+	//var_dump($invalidate_bearer_token);
+	//var_dump($connection);
 	$_SESSION = array();
+
 }
 
 /* OAuth 2 Bearer Token */
