@@ -19,6 +19,8 @@ if (isset($_REQUEST['oauth_token']) && $_SESSION['oauth_token'] !== $_REQUEST['o
 /* Create TwitteroAuth object with app key/secret and token key/secret from default phase */
 $connection = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET, $_SESSION['oauth_token'], $_SESSION['oauth_token_secret']);
 
+if (defined("PROXY_HOST")) $connection->setProxy(PROXY_HOST, PROXY_PORT);
+
 /* Request access tokens from twitter */
 $access_token = $connection->getAccessToken($_REQUEST['oauth_verifier']);
 

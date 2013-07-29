@@ -39,6 +39,11 @@ class TwitterOAuth {
   public $encoded_bearer_credentials = null;
   public $bearer_access_token = null;
 
+  /* Set proxy. */
+  protected $proxy_host;
+  protected $proxy_port;
+  protected $proxy_userpwd;
+
   /**
    * Set API URLS
    */
@@ -216,6 +221,12 @@ class TwitterOAuth {
         }
     }
 
+    if ($this->proxy_host) {
+      curl_setopt($ci, CURLOPT_PROXY, $this->proxy_host);
+      curl_setopt($ci, CURLOPT_PROXYPORT, $this->proxy_port);
+      curl_setopt($ci, CURLOPT_PROXYUSERPWD, $this->proxy_userpwd);
+    }
+
     $this->setUrl( $ci, $url );
     $response = curl_exec($ci);
     $this->http_code = curl_getinfo($ci, CURLINFO_HTTP_CODE);
@@ -308,5 +319,17 @@ class TwitterOAuth {
      $headers = array( "Authorization: Bearer " . $this->bearer_access_token );
      curl_setopt($ci, CURLOPT_HTTPHEADER, $headers);
   } 
+
+  /**
+   * @param string $proxy_host
+   * @param int $proxy_port
+   * @param string $proxy_username
+   * @param string $proxy_password
+   */
+  function setProxy($proxy_host, $proxy_port=8080, $proxy_username='', $proxy_password='') {
+    $this->proxy_host = $proxy_host;
+    $this->proxy_port = $proxy_port;
+    $this->proxy_userpwd = $proxy_username .":".$proxy_password;
+  }
 
 }
