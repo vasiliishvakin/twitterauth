@@ -1,4 +1,4 @@
-TwitterOAuth
+TwitterOAuth (old docs)
 ------------
 
 PHP library for working with Twitter's OAuth API.
