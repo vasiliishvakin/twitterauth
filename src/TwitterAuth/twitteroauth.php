@@ -14,7 +14,7 @@ require_once('OAuth.php');
 /**
  * Twitter OAuth class
  */
-class TwitterOAuth
+class TwitterAuth
 {
     /* Contains the last HTTP status code returned. */
     public $http_code;
