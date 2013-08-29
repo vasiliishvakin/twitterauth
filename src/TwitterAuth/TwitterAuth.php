@@ -9,7 +9,7 @@
 namespace TwitterAuth;
 
 /* Load OAuth lib. You can find it at http://oauth.net */
-require_once('OAuth.php');
+require_once(__DIR__ .'/OAuth.php');
 
 /**
  * Twitter OAuth class
