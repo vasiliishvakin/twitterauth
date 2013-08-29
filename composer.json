@@ -1,0 +1,14 @@
+{
+    "name": "orbisnull/twitterauth",
+    "description": "twitter auth class (oauth)",
+    "minimum-stability": "dev",
+    "authors": [
+        {
+            "name": "Vasiliy Shvakin",
+            "email": "zen4dev@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-0": { "TwitterAuth": "src/" }
+    }
+}
