@@ -7,7 +7,7 @@
  */
 namespace TwitterAuth;
 
-use OAuthBase\OAuthSignatureMethod_HMAC_SHA1;
+use OAuthBase\OAuthSignatureMethodHmacSha1;
 use OAuthBase\OAuthConsumer;
 use OAuthBase\OAuthUtil;
 use OAuthBase\OAuthRequest;
@@ -109,7 +109,7 @@ class TwitterAuth
      */
     function __construct($consumer_key, $consumer_secret, $oauth_token = NULL, $oauth_token_secret = NULL)
     {
-        $this->sha1_method = new OAuthSignatureMethod_HMAC_SHA1();
+        $this->sha1_method = new OAuthSignatureMethodHmacSha1();
         $this->consumer = new OAuthConsumer($consumer_key, $consumer_secret);
         if (!empty($oauth_token) && !empty($oauth_token_secret)) {
             $this->token = new OAuthConsumer($oauth_token, $oauth_token_secret);

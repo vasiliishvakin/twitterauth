@@ -11,12 +11,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/orbisnull/oauthbase.git",
-                "reference": "e8e7d0767b3351cc312d2eb223ff3884b9d7eacc"
+                "reference": "eb01895a0332d427e889e2dadb15ed29e36c1512"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/orbisnull/oauthbase/zipball/e8e7d0767b3351cc312d2eb223ff3884b9d7eacc",
-                "reference": "e8e7d0767b3351cc312d2eb223ff3884b9d7eacc",
+                "url": "https://api.github.com/repos/orbisnull/oauthbase/zipball/eb01895a0332d427e889e2dadb15ed29e36c1512",
+                "reference": "eb01895a0332d427e889e2dadb15ed29e36c1512",
                 "shasum": ""
             },
             "type": "library",
@@ -33,7 +33,7 @@
                 }
             ],
             "description": "Base oauth library",
-            "time": "2013-08-29 15:27:15"
+            "time": "2013-08-29 16:05:46"
         }
     ],
     "packages-dev": [
