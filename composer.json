@@ -10,5 +10,8 @@
     ],
     "autoload": {
         "psr-0": { "TwitterAuth": "src/" }
+    },
+    "require": {
+        "orbisnull/oauthbase" : "dev-master"
     }
 }

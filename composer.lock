@@ -1,0 +1,55 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
+    ],
+    "hash": "57d30a74ee71dd4b43a922991c9a7a73",
+    "packages": [
+        {
+            "name": "orbisnull/oauthbase",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/orbisnull/oauthbase.git",
+                "reference": "e8e7d0767b3351cc312d2eb223ff3884b9d7eacc"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/orbisnull/oauthbase/zipball/e8e7d0767b3351cc312d2eb223ff3884b9d7eacc",
+                "reference": "e8e7d0767b3351cc312d2eb223ff3884b9d7eacc",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "OAuthBase": "src/"
+                }
+            },
+            "notification-url": "http://packagist.org/downloads/",
+            "authors": [
+                {
+                    "name": "Vasiliy Shvakin",
+                    "email": "zen4dev@gmail.com"
+                }
+            ],
+            "description": "Base oauth library",
+            "time": "2013-08-29 15:27:15"
+        }
+    ],
+    "packages-dev": [
+
+    ],
+    "aliases": [
+
+    ],
+    "minimum-stability": "dev",
+    "stability-flags": {
+        "orbisnull/oauthbase": 20
+    },
+    "platform": [
+
+    ],
+    "platform-dev": [
+
+    ]
+}
